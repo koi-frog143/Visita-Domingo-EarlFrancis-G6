@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+<section class="hero">
+  <div>
+    <div class="eyebrow">DIGITAL VISITOR MANAGEMENT</div>
+    <h1>Visitor access, made simpler and safer.</h1>
+    <p>Visita helps boarding houses and apartments manage visitor information, resident authorization, and eventually QR-based check-in and check-out.</p>
+    <div class="hero-actions">
+      {% if user.is_authenticated %}<a class="btn btn-primary" href="{% url 'dashboard' %}">Go to Dashboard</a>
+      {% else %}<a class="btn btn-primary" href="{% url 'register' %}">Create Visitor Account</a><a class="btn btn-outline" href="{% url 'login' %}">Sign In</a>{% endif %}
+    </div>
+  </div>
+  <div class="hero-card"><span class="hero-glyph">⌂</span><h3>Welcome to Visita</h3><p>Phase 1: Accounts, secure logins, role-based dashboards, and personal profiles.</p></div>
+</section>
+<section class="panel"><h2>Who is Visita for?</h2><div class="cards">
+  <article class="card"><h3>Administrators</h3><p>Manage accounts and prepare for visitor oversight.</p></article>
+  <article class="card"><h3>Security Guards</h3><p>Prepare for secure QR check-in and check-out.</p></article>
+  <article class="card"><h3>Residents</h3><p>Manage a resident account for future visit approvals.</p></article>
+  <article class="card"><h3>Visitors</h3><p>Register now to prepare for digital visit requests.</p></article>
+</div></section>
+{% endblock %}

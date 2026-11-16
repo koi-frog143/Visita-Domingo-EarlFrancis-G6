@@ -1,4 +1,12 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
 
-urlpatterns = [path("admin/", admin.site.urls)]
+admin.site.site_header = "Visita Administration"
+admin.site.site_title = "Visita Admin"
+admin.site.index_title = "Account Management"
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("accounts/", include("accounts.urls")),
+    path("", include("core.urls")),
+]

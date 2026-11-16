@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Visitor Dashboard{% endblock %}
+{% block content %}
+<div class="page-header"><div><span class="eyebrow">VISITOR PORTAL</span><h1>Welcome, {{ user.full_name }}</h1><p class="muted">Your account is ready. Manage your profile now and use the visitor features when they become available.</p></div><a class="btn btn-outline" href="{% url 'profile' %}">My Profile</a></div>
+<div class="cards"><div class="card"><h2>ID Submission</h2><p>Upload identification for administrator verification.</p><span class="tag">Future phase</span></div><div class="card"><h2>Request a Visit</h2><p>Choose a resident and submit a visit request.</p><span class="tag">Future phase</span></div><div class="card"><h2>My QR Passes</h2><p>Present your approved QR pass at the entrance.</p><span class="tag">Future phase</span></div></div>
+{% endblock %}

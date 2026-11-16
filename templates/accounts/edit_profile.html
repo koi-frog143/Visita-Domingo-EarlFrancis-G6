@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Edit Profile{% endblock %}
+{% block content %}
+<div class="auth-layout"><section class="panel auth-panel"><span class="eyebrow">ACCOUNT SETTINGS</span><h1>Edit Profile</h1><p class="muted">You may update your own name, email, and contact number. Roles are managed by the administrator.</p>
+<form method="post" novalidate>{% csrf_token %}
+  {% for field in form %}<div class="form-group"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+    {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+  </div>{% endfor %}
+  {% for error in form.non_field_errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+  <button class="btn btn-primary btn-block" type="submit">Save changes</button>
+  <a class="btn btn-link btn-block" href="{% url 'profile' %}">Cancel</a>
+</form></section></div>
+{% endblock %}

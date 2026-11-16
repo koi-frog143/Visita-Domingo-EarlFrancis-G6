@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Administrator Dashboard{% endblock %}
+{% block content %}
+<div class="page-header"><div><span class="eyebrow">ADMINISTRATOR PORTAL</span><h1>Welcome, {{ user.full_name }}</h1><p class="muted">Manage Visita accounts and prepare for visitor management.</p></div><a class="btn btn-outline" href="{% url 'profile' %}">My Profile</a></div>
+<div class="stats">
+  <div class="stat"><span>Total accounts</span><strong>{{ total_users }}</strong></div>
+  <div class="stat"><span>Visitors</span><strong>{{ visitor_users }}</strong></div>
+  <div class="stat"><span>Residents</span><strong>{{ resident_users }}</strong></div>
+  <div class="stat"><span>Guards</span><strong>{{ guard_users }}</strong></div>
+</div>
+<section class="panel"><h2>Account Management</h2><p>Use Django Admin to add resident and guard accounts, assign residents to units, and manage account status.</p><a class="btn btn-primary" href="{% url 'admin:accounts_customuser_changelist' %}">Manage Users</a></section>
+<div class="cards"><div class="card"><h3>ID Verification</h3><p>Manual visitor ID review module.</p><span class="tag">Future phase</span></div><div class="card"><h3>Visitor Reports</h3><p>Visitor history, monitoring, and daily/monthly reports.</p><span class="tag">Future phase</span></div></div>
+{% endblock %}

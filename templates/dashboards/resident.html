@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Resident Dashboard{% endblock %}
+{% block content %}
+<div class="page-header"><div><span class="eyebrow">RESIDENT PORTAL</span><h1>Welcome, {{ user.full_name }}</h1><p class="muted">Assigned room / unit: <strong>{{ unit }}</strong></p></div><a class="btn btn-outline" href="{% url 'profile' %}">My Profile</a></div>
+<div class="cards"><div class="card"><h2>Visit Requests</h2><p>Review requests addressed to your unit.</p><span class="tag">Future phase</span></div><div class="card"><h2>Authorize Visits</h2><p>Approve requests and issue time-limited authorization.</p><span class="tag">Future phase</span></div></div>
+{% endblock %}

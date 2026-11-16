@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}My Profile{% endblock %}
+{% block content %}
+<div class="page-header"><div><span class="eyebrow">ACCOUNT SETTINGS</span><h1>My Profile</h1><p class="muted">Only you can view and update your personal account details.</p></div><a class="btn btn-primary" href="{% url 'edit_profile' %}">Edit Profile</a></div>
+<section class="panel"><div class="detail-grid">
+  <div><span class="detail-label">Full name</span><strong>{{ user.full_name }}</strong></div>
+  <div><span class="detail-label">Email address</span><strong>{{ user.email }}</strong></div>
+  <div><span class="detail-label">Contact number</span><strong>{{ user.phone|default:'Not provided' }}</strong></div>
+  <div><span class="detail-label">Account role</span><strong>{{ user.get_role_display }}</strong></div>
+  <div><span class="detail-label">Account status</span><strong>{% if user.is_active %}Active{% else %}Inactive{% endif %}</strong></div>
+  <div><span class="detail-label">Registered</span><strong>{{ user.created_at|date:'M d, Y' }}</strong></div>
+  {% if user.role == 'RESIDENT' %}<div><span class="detail-label">Assigned unit</span><strong>{{ user.resident_profile.unit_number|default:'Not assigned yet' }}</strong></div>{% endif %}
+</div></section>
+{% endblock %}

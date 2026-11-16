@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Access denied{% endblock %}
+{% block content %}
+<section class="panel">
+  <span class="eyebrow">403 FORBIDDEN</span>
+  <h1>Access denied</h1>
+  <p>Your account does not have permission to open this page.</p>
+  <a class="btn btn-primary" href="{% url 'dashboard' %}">Return to my dashboard</a>
+</section>
+{% endblock %}

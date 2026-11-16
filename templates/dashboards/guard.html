@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Security Guard Dashboard{% endblock %}
+{% block content %}
+<div class="page-header"><div><span class="eyebrow">SECURITY GUARD PORTAL</span><h1>Welcome, {{ user.full_name }}</h1><p class="muted">Security operations dashboard for the participating property.</p></div><a class="btn btn-outline" href="{% url 'profile' %}">My Profile</a></div>
+<div class="cards"><div class="card"><h2>QR Check-In</h2><p>Scan and verify approved visitor passes.</p><span class="tag">Future phase</span></div><div class="card"><h2>QR Check-Out</h2><p>Record departures and exit times.</p><span class="tag">Future phase</span></div><div class="card"><h2>Active Visitors</h2><p>Review checked-in visitors at this property.</p><span class="tag">Future phase</span></div></div>
+{% endblock %}

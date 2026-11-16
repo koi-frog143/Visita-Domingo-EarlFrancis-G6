@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-layout"><section class="panel auth-panel">
+  <span class="eyebrow">VISITOR REGISTRATION</span><h1>Create your account</h1>
+  <p class="muted">Public sign-up is for visitors. Resident and guard accounts are assigned by an administrator.</p>
+  <form method="post" novalidate>{% csrf_token %}
+    {% for field in form %}
+      <div class="form-group"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>{{ field }}
+        {% if field.help_text %}<small class="help-text">{{ field.help_text|safe }}</small>{% endif %}
+        {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+    {% endfor %}
+    {% for error in form.non_field_errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+    <button class="btn btn-primary btn-block" type="submit">Create account</button>
+  </form>
+  <p class="auth-foot">Already registered? <a href="{% url 'login' %}">Log in</a></p>
+</section></div>
+{% endblock %}
