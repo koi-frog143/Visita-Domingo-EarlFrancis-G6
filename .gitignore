@@ -1,0 +1,14 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.log
+.pytest_cache/
+.vscode/
+.idea/
+.DS_Store
+# Never commit old reference databases or future private uploads.
+*.sqlite3
+media/
+.local/
