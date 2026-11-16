@@ -1,19 +1,18 @@
-{% extends 'base.html' %}
+{% extends 'accounts/auth_base.html' %}
 {% block title %}Register{% endblock %}
-{% block content %}
-<div class="auth-layout"><section class="panel auth-panel">
-  <span class="eyebrow">VISITOR REGISTRATION</span><h1>Create your account</h1>
-  <p class="muted">Public sign-up is for visitors. Resident and guard accounts are assigned by an administrator.</p>
-  <form method="post" novalidate>{% csrf_token %}
-    {% for field in form %}
-      <div class="form-group"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>{{ field }}
-        {% if field.help_text %}<small class="help-text">{{ field.help_text|safe }}</small>{% endif %}
-        {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
-      </div>
-    {% endfor %}
-    {% for error in form.non_field_errors %}<div class="field-error">{{ error }}</div>{% endfor %}
-    <button class="btn btn-primary btn-block" type="submit">Create account</button>
-  </form>
-  <p class="auth-foot">Already registered? <a href="{% url 'login' %}">Log in</a></p>
-</section></div>
+{% block auth_class %}register-main{% endblock %}
+{% block auth_content %}
+<span class="eyebrow badge">JOIN OUR COMMUNITY</span><h1>Create your account</h1>
+<p class="auth-description">Just a few details and you will be right at home.</p>
+<p class="registration-note">Visitor sign-up. Resident and staff accounts are assigned by an administrator.</p>
+<form method="post" novalidate>{% csrf_token %}
+  {% include 'partials/form_field.html' with field=form.full_name icon='signup-icon-user.svg' %}
+  {% include 'partials/form_field.html' with field=form.email icon='signup-icon-mail.svg' %}
+  {% include 'partials/form_field.html' with field=form.phone icon='signup-icon-phone.svg' %}
+  {% include 'partials/form_field.html' with field=form.password1 icon='signup-icon-lock.svg' %}
+  {% include 'partials/form_field.html' with field=form.password2 icon='signup-icon-lock.svg' %}
+  {% for error in form.non_field_errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+  <button class="btn btn-primary btn-block" type="submit">Create account</button>
+</form>
+<p class="auth-foot">Already registered? <a href="{% url 'login' %}">Log in</a></p>
 {% endblock %}

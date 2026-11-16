@@ -1,6 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Resident Dashboard{% endblock %}
 {% block content %}
-<div class="page-header"><div><span class="eyebrow">RESIDENT PORTAL</span><h1>Welcome, {{ user.full_name }}</h1><p class="muted">Assigned room / unit: <strong>{{ unit }}</strong></p></div><a class="btn btn-outline" href="{% url 'profile' %}">My Profile</a></div>
-<div class="cards"><div class="card"><h2>Visit Requests</h2><p>Review requests addressed to your unit.</p><span class="tag">Future phase</span></div><div class="card"><h2>Authorize Visits</h2><p>Approve requests and issue time-limited authorization.</p><span class="tag">Future phase</span></div></div>
+<div class="page-header"><div><span class="eyebrow">YOUR SPACE / UNIT {{ unit }}</span><h1>Welcome home, {{ user.full_name }}!</h1><p>Another day in a space that cares for you.</p></div></div>
+{% include 'partials/welcome_banner.html' %}
+<div class="section-heading"><h2>Explore Visita</h2><a href="{% url 'profile' %}">My profile →</a></div>
+<div class="cards service-cards">
+<a class="card" href="{% url 'profile' %}"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-user.svg' %}</span><h3>Your profile</h3><p>Your details, all together.</p><span class="card-link">View profile →</span></a>
+<article class="card"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-book2.svg' %}</span><h3>Visit requests</h3><p>Requests addressed to your unit.</p><span class="tag">Coming soon</span></article>
+<article class="card"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-heart.svg' %}</span><h3>Authorize visits</h3><p>A warm welcome, with your approval.</p><span class="tag">Coming soon</span></article>
+</div>
 {% endblock %}

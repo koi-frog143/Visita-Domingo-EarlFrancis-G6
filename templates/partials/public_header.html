@@ -1,0 +1,9 @@
+<header class="site-header"><div class="container nav-bar">
+  {% include 'partials/brand.html' %}
+  <nav class="public-nav" aria-label="Main navigation">
+    <a href="{% url 'home' %}#the-visita-way">The Visita way</a>
+    <a href="{% url 'home' %}#features">Features</a>
+    <a href="{% url 'home' %}#community">Our community</a>
+  </nav>
+  <div class="nav-actions">{% if user.is_authenticated %}<a class="btn btn-primary" href="{% url 'dashboard' %}">Dashboard</a>{% else %}<a class="btn btn-outline" href="{% url 'login' %}">Log in</a><a class="btn btn-primary" href="{% url 'register' %}">Join Visita</a>{% endif %}</div>
+</div></header>
