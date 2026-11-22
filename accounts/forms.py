@@ -22,6 +22,8 @@ class RegistrationForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.role = CustomUser.Role.VISITOR  # Never take a privileged role from POST data.
+        user.is_staff = False
+        user.is_superuser = False
         if commit:
             user.save()
         return user

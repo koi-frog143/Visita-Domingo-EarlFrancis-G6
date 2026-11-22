@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.db import IntegrityError, transaction
+from django.test import Client
+from unittest.mock import patch
 from .models import ResidentProfile, VisitorProfile
 
 User = get_user_model()
@@ -163,3 +166,93 @@ class AccountsTests(TestCase):
             for route in routes:
                 with self.subTest(role=user.role, route=route):
                     self.assertEqual(self.client.get(reverse(route)).status_code, 200 if route == allowed else 403)
+
+    def test_registration_validates_required_fields_email_phone_and_password(self):
+        valid = {"full_name": "New Visitor", "email": "new@example.com", "phone": "+63 912 345 6789",
+                 "password1": "StrongPass123!", "password2": "StrongPass123!"}
+        for changes in [{"full_name": " "}, {"email": ""}, {"email": "invalid"},
+                        {"phone": "letters"}, {"phone": "-------"},
+                        {"password1": "12345678", "password2": "12345678"}]:
+            with self.subTest(changes=changes):
+                response = self.client.post(reverse("register"), {**valid, **changes})
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.context["form"].errors)
+                self.assertFalse(User.objects.filter(email="new@example.com").exists())
+
+    def test_registration_cannot_grant_staff_or_superuser_access(self):
+        response = self.client.post(reverse("register"), {
+            "full_name": "Unprivileged Visitor", "email": "unprivileged@example.com",
+            "password1": "StrongPass123!", "password2": "StrongPass123!",
+            "role": "ADMIN", "is_staff": "on", "is_superuser": "on",
+        })
+        self.assertRedirects(response, reverse("login"))
+        user = User.objects.get(email="unprivileged@example.com")
+        self.assertEqual(user.role, "VISITOR")
+        self.assertFalse(user.is_staff)
+        self.assertFalse(user.is_superuser)
+
+    def test_registration_handles_simultaneous_duplicate_signup(self):
+        with patch("accounts.forms.RegistrationForm.save", side_effect=IntegrityError("duplicate")):
+            response = self.client.post(reverse("register"), {
+                "full_name": "New Visitor", "email": "concurrent@example.com",
+                "password1": "StrongPass123!", "password2": "StrongPass123!",
+            })
+        self.assertContains(response, "was just registered")
+        self.assertFalse(User.objects.filter(email="concurrent@example.com").exists())
+
+    def test_login_always_uses_the_role_dashboard(self):
+        response = self.client.post(reverse("login") + "?next=" + reverse("admin_dashboard"), {
+            "username": self.visitor.email, "password": "StrongPass123!",
+        })
+        self.assertRedirects(response, reverse("dashboard"), fetch_redirect_response=False)
+        self.assertRedirects(self.client.get(reverse("dashboard")), reverse("visitor_dashboard"))
+
+    def test_profile_ignores_other_account_and_privilege_fields(self):
+        self.client.force_login(self.visitor)
+        response = self.client.post(reverse("edit_profile"), {
+            "full_name": "Own Profile", "email": self.visitor.email, "phone": "+63 912 345 6789",
+            "id": self.resident.pk, "user_id": self.resident.pk,
+            "role": "ADMIN", "is_staff": "on", "is_superuser": "on", "password": "replaced",
+        })
+        self.assertRedirects(response, reverse("profile"))
+        self.visitor.refresh_from_db()
+        self.resident.refresh_from_db()
+        self.assertEqual(self.visitor.full_name, "Own Profile")
+        self.assertFalse(self.visitor.is_staff)
+        self.assertFalse(self.visitor.is_superuser)
+        self.assertTrue(self.visitor.check_password("StrongPass123!"))
+        self.assertEqual(self.resident.full_name, "Test Resident")
+        response = self.client.get(reverse("profile"), {"user_id": self.resident.pk})
+        self.assertContains(response, self.visitor.email)
+        self.assertNotContains(response, self.resident.email)
+
+    def test_profile_concurrent_duplicate_email_is_a_form_error(self):
+        self.client.force_login(self.visitor)
+        with patch("accounts.forms.ProfileUpdateForm.save", side_effect=IntegrityError("duplicate")):
+            response = self.client.post(reverse("edit_profile"), {
+                "full_name": "Changed", "email": "claimed@example.com", "phone": "",
+            })
+        self.assertContains(response, "already registered")
+        self.visitor.refresh_from_db()
+        self.assertEqual(self.visitor.email, "visitor@example.com")
+
+    def test_database_enforces_case_insensitive_email_uniqueness(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            # bypass save() normalization to test the database constraint itself
+            User.objects.bulk_create([User(email="VISITOR@EXAMPLE.COM", full_name="Duplicate")])
+
+    def test_account_post_forms_require_csrf(self):
+        client = Client(enforce_csrf_checks=True)
+        self.assertEqual(client.post(reverse("register"), {}).status_code, 403)
+        self.assertEqual(client.post(reverse("login"), {}).status_code, 403)
+        client.force_login(self.visitor)
+        self.assertEqual(client.post(reverse("edit_profile"), {}).status_code, 403)
+        self.assertEqual(client.post(reverse("logout"), {}).status_code, 403)
+
+    def test_profile_escapes_user_supplied_html(self):
+        self.visitor.full_name = "<script>alert('x')</script>"
+        self.visitor.save()
+        self.client.force_login(self.visitor)
+        response = self.client.get(reverse("profile"))
+        self.assertNotContains(response, "<script>alert('x')</script>")
+        self.assertContains(response, "&lt;script&gt;")

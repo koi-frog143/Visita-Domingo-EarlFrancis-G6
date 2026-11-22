@@ -3,6 +3,7 @@ from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models
 from django.db.models.functions import Lower
 
@@ -45,7 +46,13 @@ class CustomUser(AbstractUser):
     username = None  # Use unique email instead of a separate username.
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=150)
-    phone = models.CharField(max_length=30, blank=True)
+    phone = models.CharField(
+        max_length=30, blank=True,
+        validators=[RegexValidator(
+            r"^\+?(?=[0-9() .-]*[0-9])[0-9() .-]{7,30}$",
+            "Enter a valid contact number using 7–30 digits, spaces, parentheses, dots or hyphens.",
+        )],
+    )
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.VISITOR)
     created_at = models.DateTimeField(auto_now_add=True)
 
