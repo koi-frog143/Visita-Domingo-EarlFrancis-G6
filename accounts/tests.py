@@ -4,6 +4,11 @@ from django.urls import reverse
 from django.db import IntegrityError, transaction
 from django.test import Client
 from unittest.mock import patch
+from django.core.exceptions import ValidationError
+from django.db import connection
+from django.db.migrations.executor import MigrationExecutor
+from django.test import TransactionTestCase
+from django.contrib.auth.hashers import make_password
 from .models import ResidentProfile, VisitorProfile
 
 User = get_user_model()
@@ -256,3 +261,120 @@ class AccountsTests(TestCase):
         response = self.client.get(reverse("profile"))
         self.assertNotContains(response, "<script>alert('x')</script>")
         self.assertContains(response, "&lt;script&gt;")
+
+
+class RoleProfileIntegrityTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.visitor = User.objects.create_user("integrity-visitor@example.com", full_name="Visitor")
+        cls.visitor_profile = VisitorProfile.objects.create(user=cls.visitor)
+        cls.resident = User.objects.create_user("integrity-resident@example.com", full_name="Resident", role="RESIDENT")
+        cls.resident_profile = ResidentProfile.objects.create(user=cls.resident, unit_number="201")
+        cls.admin = User.objects.create_superuser("integrity-admin@example.com", "AdminPass!847263", full_name="Admin")
+
+    def test_invalid_role_rejected_by_model(self):
+        with self.assertRaises(ValidationError):
+            User.objects.create_user("invalid@example.com", full_name="Invalid", role="UNKNOWN")
+
+    def test_invalid_role_rejected_by_database_even_when_save_is_bypassed(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            User.objects.filter(pk=self.visitor.pk).update(role="UNKNOWN")
+
+    def test_role_change_preserves_existing_profile_and_password(self):
+        old_password = self.visitor.password
+        self.visitor.role = "GUARD"
+        with self.assertRaises(ValidationError):
+            self.visitor.save()
+        self.visitor.refresh_from_db()
+        self.assertEqual(self.visitor.role, "VISITOR")
+        self.assertEqual(self.visitor.password, old_password)
+        self.assertTrue(VisitorProfile.objects.filter(user=self.visitor).exists())
+
+    def test_admin_role_change_is_a_form_error(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("admin:accounts_customuser_change", args=[self.visitor.pk]), {
+            "email": self.visitor.email, "full_name": self.visitor.full_name, "phone": "",
+            "role": "GUARD", "is_active": "on", "_save": "Save",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "This account has a Visitor profile")
+        self.visitor.refresh_from_db()
+        self.assertEqual(self.visitor.role, "VISITOR")
+
+    def test_both_profile_types_and_wrong_role_are_rejected(self):
+        with self.assertRaises(ValidationError):
+            ResidentProfile.objects.create(user=self.visitor, unit_number="202")
+        with self.assertRaises(ValidationError):
+            VisitorProfile.objects.create(user=self.resident)
+
+    def test_stale_cached_user_cannot_bypass_profile_role_validation(self):
+        user = User.objects.create_user("stale@example.com", full_name="Stale", role="VISITOR")
+        profile = VisitorProfile(user=user)
+        User.objects.filter(pk=user.pk).update(role="GUARD")
+        with self.assertRaises(ValidationError):
+            profile.save()
+
+    def test_existing_profiles_cannot_be_reassigned(self):
+        other = User.objects.create_user("other@example.com", full_name="Other")
+        self.visitor_profile.user = other
+        with self.assertRaises(ValidationError):
+            self.visitor_profile.save()
+        self.visitor_profile.refresh_from_db()
+        self.assertEqual(self.visitor_profile.user_id, self.visitor.pk)
+
+    def test_normal_profile_edits_and_deactivation_still_work(self):
+        self.resident_profile.unit_number = "303"
+        self.resident_profile.save()
+        self.resident.is_active = False
+        self.resident.save()
+        self.resident.refresh_from_db()
+        self.assertFalse(self.resident.is_active)
+        self.assertEqual(self.resident_profile.unit_number, "303")
+
+    def test_superuser_cannot_be_demoted_to_another_role(self):
+        self.admin.role = "GUARD"
+        with self.assertRaises(ValidationError):
+            self.admin.save()
+
+    def test_role_changes_without_profiles_remain_allowed(self):
+        user = User.objects.create_user("unlinked@example.com", full_name="Unlinked", role="GUARD")
+        user.role = "RESIDENT"
+        user.save()
+        ResidentProfile.objects.create(user=user, unit_number="404")
+
+
+class RoleIntegrityMigrationTests(TransactionTestCase):
+    def test_migration_stops_for_legacy_conflicts_and_preserves_owner_credentials(self):
+        before = [("accounts", "0002_alter_customuser_phone")]
+        after = [("accounts", "0003_validate_roles_and_profiles")]
+        executor = MigrationExecutor(connection)
+        executor.migrate(before)
+        old_apps = executor.loader.project_state(before).apps
+        LegacyUser = old_apps.get_model("accounts", "CustomUser")
+        LegacyVisitor = old_apps.get_model("accounts", "VisitorProfile")
+        owner = LegacyUser.objects.create(
+            email="migration-owner@example.com", password=make_password("OwnerPassword!847263"),
+            full_name="Owner", role="ADMIN", is_staff=True, is_superuser=True,
+        )
+        owner_hash = owner.password
+        invalid = LegacyUser.objects.create(email="legacy@example.com", full_name="Legacy", role="UNKNOWN")
+        try:
+            with self.assertRaisesRegex(RuntimeError, "1 invalid roles"):
+                MigrationExecutor(connection).migrate(after)
+            self.assertEqual(LegacyUser.objects.get(pk=owner.pk).password, owner_hash)
+            self.assertTrue(LegacyUser.objects.filter(pk=invalid.pk).exists())
+            LegacyUser.objects.filter(pk=invalid.pk).update(role="GUARD")
+            legacy_profile = LegacyVisitor.objects.create(user_id=invalid.pk)
+            with self.assertRaisesRegex(RuntimeError, "1 incompatible Visitor profiles"):
+                MigrationExecutor(connection).migrate(after)
+            self.assertTrue(LegacyVisitor.objects.filter(pk=legacy_profile.pk).exists())
+            legacy_profile.delete()
+            MigrationExecutor(connection).migrate(after)
+            current_owner = User.objects.get(pk=owner.pk)
+            self.assertEqual(current_owner.password, owner_hash)
+            self.assertTrue(current_owner.check_password("OwnerPassword!847263"))
+            self.assertEqual(current_owner.role, "ADMIN")
+        finally:
+            LegacyVisitor.objects.filter(user_id=invalid.pk).delete()
+            LegacyUser.objects.filter(pk=invalid.pk).update(role="GUARD")
+            MigrationExecutor(connection).migrate(after)

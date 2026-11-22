@@ -4,7 +4,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models.functions import Lower
 
 
@@ -63,12 +63,35 @@ class CustomUser(AbstractUser):
     class Meta:
         constraints = [
             models.UniqueConstraint(Lower("email"), name="unique_visita_email_ci"),
+            models.CheckConstraint(
+                condition=models.Q(role__in=["ADMIN", "GUARD", "RESIDENT", "VISITOR"]),
+                name="valid_visita_user_role",
+            ),
         ]
+
+    def clean(self):
+        super().clean()
+        self.validate_role_profiles(self._state.db or router.db_for_write(type(self), instance=self))
+
+    def validate_role_profiles(self, using):
+        if self.role not in self.Role.values:
+            raise ValidationError({"role": "Choose a valid Visita role."})
+        if self.is_superuser and (self.role != self.Role.ADMIN or not self.is_staff):
+            raise ValidationError({"role": "Superusers must remain staff Administrators."})
+        if ResidentProfile.objects.using(using).filter(user_id=self.pk).exists() and self.role != self.Role.RESIDENT:
+            raise ValidationError({"role": "This account has a Resident profile. Its role cannot be changed while that profile exists."})
+        if VisitorProfile.objects.using(using).filter(user_id=self.pk).exists() and self.role != self.Role.VISITOR:
+            raise ValidationError({"role": "This account has a Visitor profile. Its role cannot be changed while that profile exists."})
 
     def save(self, *args, **kwargs):
         if self.email:
             self.email = self.email.strip().lower()
-        super().save(*args, **kwargs)
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        # All role/profile writes serialize on the same account row.
+        with transaction.atomic(using=using):
+            type(self).objects.using(using).select_for_update().filter(pk=self.pk).first()
+            self.validate_role_profiles(using)
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.full_name} ({self.email})"
@@ -82,8 +105,14 @@ class ResidentProfile(models.Model):
 
     def clean(self):
         super().clean()
-        if self.user_id and self.user.role != CustomUser.Role.RESIDENT:
-            raise ValidationError("Resident profile requires a RESIDENT user.")
+        validate_profile(self, CustomUser.Role.RESIDENT, VisitorProfile)
+
+    def save(self, *args, **kwargs):
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            CustomUser.objects.using(using).select_for_update().get(pk=self.user_id)
+            self.full_clean()
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.full_name} - Unit {self.unit_number}"
@@ -96,8 +125,31 @@ class VisitorProfile(models.Model):
 
     def clean(self):
         super().clean()
-        if self.user_id and self.user.role != CustomUser.Role.VISITOR:
-            raise ValidationError("Visitor profile requires a VISITOR user.")
+        validate_profile(self, CustomUser.Role.VISITOR, ResidentProfile)
+
+    def save(self, *args, **kwargs):
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=using):
+            CustomUser.objects.using(using).select_for_update().get(pk=self.user_id)
+            self.full_clean()
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return self.user.full_name
+
+
+def validate_profile(profile, expected_role, other_model):
+    if not profile.user_id:
+        return  # The required FK is reported by full_clean / ModelForm.
+    using = profile._state.db or router.db_for_write(type(profile), instance=profile)
+    user = CustomUser.objects.using(using).filter(pk=profile.user_id).first()
+    if user is None:
+        return  # Let foreign-key validation report a missing account.
+    if user.role != expected_role:
+        raise ValidationError({"user": f"This profile requires a {expected_role} account."})
+    if other_model.objects.using(using).filter(user_id=profile.user_id).exists():
+        raise ValidationError({"user": "An account cannot have both Resident and Visitor profiles."})
+    if not profile._state.adding:
+        original = type(profile).objects.using(using).filter(pk=profile.pk).values_list("user_id", flat=True).first()
+        if original is not None and original != profile.user_id:
+            raise ValidationError({"user": "An existing profile cannot be reassigned to another account."})
