@@ -7,9 +7,9 @@
 <main id="main-content">
   <section class="container hero" id="the-visita-way">
     <div class="hero-copy">
-      <span class="eyebrow badge">A BETTER WAY TO FEEL AT HOME</span>
-      <h1>Your space. Your people.<br>A place to belong.</h1>
-      <p>A thoughtful home for boarding-house life. Visita brings visitors, residents, and staff together with secure accounts and a simpler way to stay connected.</p>
+      <span class="eyebrow badge">A WARMER WAY TO WELCOME</span>
+      <h1>Good visits.<br>Great connections.</h1>
+      <p>A simpler, more thoughtful way to bring people together. Visita connects visitors, hosts, and the front desk through secure accounts and a familiar welcome.</p>
       <div class="hero-actions"><a class="btn btn-primary" href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'register' %}{% endif %}">Explore your space</a><a class="btn btn-outline" href="#features">Learn how it works</a></div>
       <p class="trust-line">{% include 'partials/icon.html' with icon='landing-icon-shield.svg' %}A caring community, supported by secure records</p>
     </div>
@@ -24,7 +24,7 @@
   </section>
   <section class="container features-section" id="features">
     <img class="feature-wave" src="{% static 'figma/landing-background-motif-wave.svg' %}" alt="">
-    <h2>Everything you need to feel settled</h2>
+    <h2>A familiar welcome starts here</h2>
     <div class="cards feature-cards">
       <a class="card feature-card" href="{% url 'register' %}"><span class="icon-tile">{% include 'partials/icon.html' with icon='landing-icon-book.svg' %}</span><h3>Visitor accounts</h3><p>A warm welcome starts with a simple sign-up.</p></a>
       <a class="card feature-card" href="{% url 'login' %}"><span class="icon-tile">{% include 'partials/icon.html' with icon='landing-icon-ticket.svg' %}</span><h3>A space for every role</h3><p>Dedicated dashboards for your community.</p></a>
