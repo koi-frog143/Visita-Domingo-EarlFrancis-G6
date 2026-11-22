@@ -2,19 +2,35 @@
 
 Digital visitor management for boarding houses and apartments using Django templates and PostgreSQL.
 
-The frontend follows the [Haruhay Figma web design](https://www.figma.com/design/BrWLcw8zdtGPEEXgmSzRJ4/?node-id=73-2), adapted to Visita branding and Phase 1 account features. It uses local Figma illustrations/icons, the DM Sans font, responsive layouts, split authentication pages, and sidebar dashboards. Font licensing is included in `static/fonts/OFL.txt`.
+The frontend follows the [Haruhay Figma web design](https://www.figma.com/design/BrWLcw8zdtGPEEXgmSzRJ4/?node-id=73-2), adapted to Visita branding and Phase 1 account features. The cozy green palette uses forest `#285744`, sage `#E4EDDF`, cream `#FAF8F2`, and ink `#203D30`, inspired by the [separate Visita concept file](https://www.figma.com/design/d7KNK7ww1yisdPfF3hS9Fi). It preserves the local Figma illustrations/icons, DM Sans font, responsive layouts, split authentication pages, and sidebar dashboards. Font licensing is included in `static/fonts/OFL.txt`.
 
 ## Features
 
-- Visitor registration with case-insensitive unique email validation and password confirmation.
+- Visitor registration with required full name, case-insensitive unique email validation, password confirmation, and optional validated contact number.
 - Django password hashing, email login, CSRF protection, and POST-only logout.
 - Administrator, Security Guard, Resident, and Visitor dashboards with server-side role checks.
 - Profile viewing/editing restricted to the signed-in account. Public forms cannot change roles.
 - Django Admin for creating guards/residents and assigning resident units.
 - Supabase PostgreSQL with SSL and restricted API-role permissions on Django tables.
 - Automated account, permission, profile, and database-access tests.
+- Concurrent duplicate registration/profile emails return clear form errors, and login always opens the user's role dashboard.
 
 QR passes, visit requests, ID review, scanning, and reporting belong to later phases.
+
+## Prepared copy and Git branch
+
+The active repository is `~/Desktop/Visita/Visita-Domingo-EarlFrancis-G6`, on `feature/account-foundation`. The earlier standalone copy under Haruhay has been removed after consolidating its refinements here. Follow [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for the two reviewed commit groups and push commands. No credentials or database files belong in a commit.
+
+For this machine only, a private Python runtime and isolated PostgreSQL cluster are kept in ignored `.local/`. The private `.env` selects `visita_clone_dev` on localhost port `55439`, with `test_visita_clone_dev` used for tests. Start this prepared copy in Git Bash:
+
+```bash
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start-local-db.ps1
+.local/python/python.exe manage.py migrate
+.local/python/python.exe manage.py createsuperuser
+.local/python/python.exe manage.py runserver 127.0.0.1:8001 --noreload
+```
+
+Choose your own Admin credentials at the prompt; no owner account is seeded. Stop Django with Ctrl+C, then run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/stop-local-db.ps1`. The scripts affect only `.local/postgres` in this repository. They do not start, migrate or reset any Supabase database. Fresh clones do not include these local tools; follow the standard setup below.
 
 ## Windows setup
 
@@ -91,6 +107,8 @@ Tests use a separate database named by `DB_TEST_NAME`; choose a dedicated name, 
 ```
 
 The test database is retained between runs, and Django TestCase rolls back test data. The application's `postgres` database is separate.
+
+For the prepared local-only copy, use `.local/python/python.exe manage.py test accounts core --noinput`; it creates and removes the dedicated test database. Use the same interpreter for `check` and `makemigrations --check --dry-run`. The Supabase-specific privilege test is skipped when Supabase API roles are absent on local PostgreSQL.
 
 ## Private files and database access
 
