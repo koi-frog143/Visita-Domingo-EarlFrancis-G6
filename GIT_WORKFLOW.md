@@ -1,53 +1,41 @@
-# Push the account refinements from your clone
+# Push the integrity fix and documentation separately
 
-Use **this cloned repository**: `~/Desktop/Visita/Visita-Domingo-EarlFrancis-G6`.
+Work in `~/Desktop/Visita/Visita-Domingo-EarlFrancis-G6`. The first branch, `fix/account-role-integrity`, is prepared locally. All edits are uncommitted. Your existing remote and main history are preserved.
 
-The existing branch is `feature/account-foundation`. Keep it; do not create the same branch again. Its GitHub origin and commit history have been preserved. No commits or pushes were made automatically.
+## 1. Account integrity
 
-## 1. Account validation and regression tests
+Branch: `fix/account-role-integrity`
+
+Description: Enforce the four valid account roles, block incompatible role/profile changes, validate profile saves and preserve credentials. Add a migration preflight and regression tests.
 
 ```bash
 cd ~/Desktop/Visita/Visita-Domingo-EarlFrancis-G6
-git switch feature/account-foundation
-git status
-git add accounts/forms.py accounts/models.py accounts/views.py accounts/tests.py accounts/migrations/0002_alter_customuser_phone.py
+git switch fix/account-role-integrity
+git add accounts/models.py accounts/tests.py accounts/migrations/0003_validate_roles_and_profiles.py
 git diff --cached
-git commit -m "fix: strengthen Visita account validation"
-git push -u origin feature/account-foundation
+git commit -m "fix: enforce account role and profile integrity"
+git push -u origin fix/account-role-integrity
 ```
 
-This adds contact-number validation, safe handling of concurrent duplicate email submissions, explicit Visitor privilege restrictions, and consistent role-based login redirects. It includes regression tests and a migration that preserves existing users and credentials.
+Open a pull request into `main` titled **Enforce account role and profile integrity**. Applying this feature to Supabase requires `manage.py migrate`; back up the database first. No Supabase migration or account reset was run automatically.
 
-## 2. Cozy green interface on a separate branch
+## 2. Setup instructions and SDD
+
+Branch: `docs/django-setup-and-sdd`
+
+Description: Restore installation, Supabase connection, run and testing instructions. Align the SDD with full-stack Django templates and PostgreSQL/Supabase while retaining its later-phase visitor workflows.
+
+After committing the code fix, the remaining uncommitted documentation carries over when switching branches:
 
 ```bash
 git switch main
-git switch -c feature/cozy-green-ui
-git add static/css/style.css static/figma templates/accounts/auth_base.html templates/home.html templates/partials/form_field.html README.md GIT_WORKFLOW.md scripts
+git switch -c docs/django-setup-and-sdd
+git add README.md GIT_WORKFLOW.md docs/Domingo-EarlFrancis-SDD.pdf
 git diff --cached --stat
-git diff --cached
-git commit -m "style: apply cozy green Visita theme"
-git push -u origin feature/cozy-green-ui
+git commit -m "docs: restore setup guide and align SDD with Django"
+git push -u origin docs/django-setup-and-sdd
 ```
 
-This preserves the existing layouts and changes their colors to forest green, sage, and cream, including the local SVG assets. The welcome text focuses on visits. Form help and error IDs support accessible validation messages. The `scripts` folder starts/stops only this prepared copy's private local PostgreSQL cluster; fresh clones should follow README's normal PostgreSQL setup.
+Open another pull request into `main` titled **Restore setup guide and align SDD with Django**. Merge both PRs before following the integrity-update instructions. Your original Downloads PDF is preserved; the revised PDF is in this repository's `docs` folder.
 
-## Pull request
-
-Open two separate pull requests into `main`: `feature/account-foundation` for account validation and `feature/cozy-green-ui` for styling. The remaining uncommitted UI files carry over when switching from the account branch to main; only add the listed files to each commit.
-
-**Title:** Refine Visita accounts and apply cozy green styling
-
-**Description:** Improve registration and profile validation, handle concurrent duplicate emails, and direct each account to its authorized dashboard after login. Preserve the existing Django/PostgreSQL app, roles and migration history while applying forest green, sage and cream styling inspired by Haruhay.
-
-Run the checks in README before merging. `.env`, `.local/`, virtual environments, database backups and passwords stay out of Git. Review `git status` before each commit.
-
-After merging, start the next feature from updated main:
-
-```bash
-git switch main
-git pull --ff-only origin main
-git switch -c feature/visit-requests
-```
-
-Commit and push working changes as you complete them. Visit requests, approvals, check-in/out and history are later features; do not backdate or manufacture progress commits.
+Review `git status` before every commit. Never add private `.env`, `.local` contents or database backups. Rotate the database password previously shared in chat privately in Supabase if not already changed; it is not stored in either commit.
