@@ -7,6 +7,7 @@
   <title>{% block title %}Visita{% endblock %} | Visitor Management</title>
   <link rel="preload" href="{% static 'fonts/dm-sans.ttf' %}" as="font" type="font/ttf" crossorigin>
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
@@ -16,7 +17,7 @@
       {% include 'partials/sidebar.html' %}
       <div class="workspace">
         <header class="workspace-header">
-          <p class="breadcrumb"><a href="{% url 'dashboard' %}">{% if user.role == 'ADMIN' %}Administration{% else %}My space{% endif %}</a><span>/</span>{% if 'profile' in request.resolver_match.url_name %}My profile{% else %}Dashboard{% endif %}</p>
+          <p class="breadcrumb"><a href="{% url 'dashboard' %}">{% if user.role == 'ADMIN' %}Administration{% else %}My space{% endif %}</a><span>/</span>{% if 'profile' in request.resolver_match.url_name %}My profile{% elif 'visit' in request.resolver_match.url_name %}Visit requests{% elif 'id_' in request.resolver_match.url_name %}ID review{% else %}Dashboard{% endif %}</p>
           <a class="account-chip" href="{% url 'profile' %}"><span class="avatar avatar-small">{{ user.full_name|first|upper }}</span><span>{{ user.full_name }}</span></a>
         </header>
         <main id="main-content" class="workspace-content">
