@@ -1,4 +1,4 @@
-# Visita - Phase 1
+# Visita — Project Development 2
 
 Digital visitor management for boarding houses and apartments using Django templates and PostgreSQL.
 
@@ -13,25 +13,42 @@ Digital visitor management for boarding houses and apartments using Django templ
 - Automated account, permission, profile, and database-access tests.
 - Concurrent duplicate registration/profile emails return clear form errors, and login always opens the user's role dashboard.
 
-QR passes, visit requests, ID review, scanning, and reporting belong to later phases.
+## PD2 core feature: visit requests and resident approval
+
+The visitor-to-resident approval workflow now works end to end through Django templates and PostgreSQL/Supabase:
+
+- Visitors choose an active resident/host, enter a purpose and future arrival/departure, and submit a persistent pending request.
+- Every request has a protected `created_by` foreign key to the signed-in account, alongside its SDD visitor/resident profile relationships. The browser cannot choose another creator.
+- Visitors view/filter their own requests, edit future pending requests, delete pending requests after confirmation, or cancel pending/approved requests while retaining history.
+- Visitors submit a JPG/PNG ID image (maximum 5 MB). Administrators privately download and verify/reject submissions; rejection requires a reason.
+- Only the addressed resident can approve/reject a future pending request. Approval requires an administrator-verified ID. Atomic locks prevent conflicting decisions from replacing an earlier result.
+- Administrators view all requests without overriding resident decisions. Guards keep their existing account/dashboard access; pending requests and private IDs are restricted from this role.
+- Protected profile/account relationships, database schedule/status/decision constraints and timestamped actor-linked audit entries preserve integrity. New tables revoke Supabase browser/API role access.
+- Visitor, Resident and Administrator dashboards expose working links and database-derived counts. CSRF, validation errors, success messages and owner checks apply to writes.
+
+This increment implements SDD F-04 plus its F-03 prerequisite. Temporary codes, QR passes, guard check-in/check-out, active-visitor monitoring and activity reports remain later work (F-05 to F-08). A resident approval is a planning record and does not grant a QR entry credential yet.
+
+The linked [Figma account design](https://www.figma.com/design/d7KNK7ww1yisdPfF3hS9Fi/Visita---Visitor-Management?node-id=3-35) supplied DM Sans and the forest/sage/cream visual system. New request and ID views extend those patterns; the file does not contain exact PD2 screen layouts.
+
+Follow the [manual Git workflow](GIT_WORKFLOW.md) to commit the dashboard integration and release through `develop`. The student completes the report and captures submission evidence manually; prepared report examples are kept local and excluded from this feature commit.
 
 ## Technology and design
 
 Full-stack Django serves HTML through Django templates. PostgreSQL, either local or hosted by Supabase, is the only configured database. Email is the unique login identifier. The UI uses forest green, sage and cream, with local SVG assets and DM Sans. Font licensing is in `static/fonts/OFL.txt`.
 
-The revised [Software Design Document](docs/Domingo-EarlFrancis-SDD.pdf) reflects Django templates and PostgreSQL/Supabase. Its broader visitor/QR workflows describe later phases.
+The revised [Software Design Document](docs/Domingo-EarlFrancis-SDD.pdf) reflects Django templates and PostgreSQL/Supabase. Its broader QR/scanning/reporting workflows describe later phases. The older Downloads SDD's proposed React/Spring stack is superseded by the lab's Django requirement and this codebase.
 
 ## Run this prepared Windows copy
 
-Open Git Bash in `~/Desktop/Visita/Visita-Domingo-EarlFrancis-G6`. The private Python runtime in `.local/` is already installed. Your existing `.env` is preserved; keep its secret and database connection values private.
+Open PowerShell in `C:\Users\L23X07W17\Visita-Domingo-EarlFrancis-G6`. The `.venv` runtime and existing `.env` are prepared; keep secret and database connection values private.
 
-```bash
-.local/python/python.exe manage.py check
-.local/python/python.exe manage.py migrate
-.local/python/python.exe manage.py runserver 127.0.0.1:8001 --noreload
+```powershell
+.\.venv\Scripts\python.exe -B manage.py check
+.\.venv\Scripts\python.exe -B manage.py migrate
+.\.venv\Scripts\python.exe -B manage.py runserver 127.0.0.1:8001 --noreload
 ```
 
-Open http://127.0.0.1:8001/. Stop Django with Ctrl+C. Use your existing Admin login. On a new database only, create an Admin with `.local/python/python.exe manage.py createsuperuser`.
+Open http://127.0.0.1:8001/. Stop Django with Ctrl+C. Use your existing Admin login. On a new database only, create an Admin with `python manage.py createsuperuser`. PD2 migrations are already applied to this prepared Supabase connection; `migrate` is safe to rerun.
 
 If `.env` selects the prepared local PostgreSQL instance on port 55439, start it with `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/start-local-db.ps1`. Stop it afterward with `scripts/stop-local-db.ps1` using the same PowerShell flags. These scripts are unnecessary for Supabase.
 
@@ -89,23 +106,58 @@ Existing Resident or Visitor profiles lock their account to the matching role. D
 | Role dashboard redirect | `/dashboard/` |
 | Admin / Guard / Resident / Visitor | `/dashboard/admin/`, `/dashboard/guard/`, `/dashboard/resident/`, `/dashboard/visitor/` |
 | Django administration | `/admin/` |
+| Visit list / new request | `/visits/`, `/visits/new/` |
+| Visit details / edit / cancel / delete | `/visits/<uuid>/`, then `edit/`, `cancel/`, `delete/` |
+| ID submissions / upload | `/visits/ids/`, `/visits/ids/upload/` |
+| Administrator ID review / private download | `/visits/ids/<uuid>/review/`, `/visits/ids/<uuid>/file/` |
 
 Log out with the navigation button (POST). Admins create Guard/Resident accounts and manage unit assignments. Public registration never grants privileged roles.
 
 ## Verify safely
 
-Run tests against a dedicated local PostgreSQL development cluster with database-creation permission. After selecting that local connection in your private environment:
+Use a PostgreSQL development connection with database-creation permission. The helper creates a unique separate test database, refuses to reuse an existing database, runs checks, and removes only its own test database. On Supabase it handles retained session-pooler connections during teardown. It never chooses the application database as its test database.
 
 ```bash
-python manage.py test accounts core --noinput
+python scripts/verify_pd2.py
 python manage.py check
 python manage.py makemigrations --check --dry-run
 ```
 
-Replace `python` with `.local/python/python.exe` for the prepared runtime. The runner creates and removes a separate test database. The Supabase API-role test skips on local PostgreSQL without `anon`/`authenticated` roles. Do not run tests against a production connection or a shared database named as the test database.
+Replace `python` with `.\.venv\Scripts\python.exe` in the prepared PowerShell environment. The Supabase API-role test skips on a local server without `anon`/`authenticated` roles. The account migration regression restores every app's latest migrations after its temporary downgrade, including visit tables.
+
+## Classroom accounts and browser checks
+
+Create four separate test accounts without changing existing accounts/passwords:
+
+```powershell
+.\.venv\Scripts\python.exe -B manage.py seed_pd2
+```
+
+Credentials are generated into ignored `.local/pd2-test-accounts.json`. Open that private file to obtain the dedicated classroom credentials for your manual walkthrough. Its Administrator uses the application ID review UI, and has no Django staff/superuser privileges. The seed refuses to reset an existing account with missing/mismatched saved credentials.
+
+To check desktop/mobile navigation and page rendering, install the optional development tools, keep Django running on port 8001, and run in another terminal:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m playwright install chromium
+.\.venv\Scripts\python.exe -B scripts\verify_pd2.py
+.\.venv\Scripts\python.exe -B scripts\check_ui.py
+```
+
+The browser check signs in as each classroom role, inspects dashboard/profile/request/ID pages, verifies one active navigation item and the matching breadcrumb, checks mobile overflow and image proportions, and exercises permission-denied pages. It reads existing business records without creating requests, uploading IDs or editing profiles. Local diagnostic previews/results are saved under ignored `.local/ui-regression/`; they are not submission evidence.
+
+For a manual functional walkthrough, submit a future-dated request as Visitor, verify a sample ID as Administrator, approve/reject the addressed request as Resident, and confirm the stored result as Visitor. Use separate pending requests to demonstrate editing/deleting and cancellation. Test required fields, reversed arrival/departure times, rejected IDs without a reason and wrong-role URLs. QR scanning remains a later increment. Navigation uses exact route groups for all pages, so Visitor dashboards cannot also select Visit requests. Expired requests and stale action links show their current availability; repeated review submissions display an error without replacing the earlier decision.
+
+## Manual completion report
+
+Fill the supplied Word template and add your own screenshots and actual PR links. Export your reviewed final PDF to `docs/Visita-Domingo-EarlFrancis-G6-PD2.pdf`. Prepared report examples, old automatic capture/report scripts and screenshots remain local and ignored. When your own final report is ready, use the explicit report-staging instructions in GIT_WORKFLOW.md to include it in a PR into `develop`.
+
+## Private upload storage and current limits
+
+ID images are stored under ignored `media/private/`; PostgreSQL stores protected references/review metadata. There is no public media route. Only Administrators can download images, with private/no-store caching and attachment responses. Use fictional sample IDs for the lab. A deployed host needs durable private storage or a secure copy of the private directory. The ID list shows the newest 100 submissions; visits have pagination and status filtering. Successful workflow actions write audit records; an audit viewer is later work.
 
 ## Secrets and commits
 
 `.env`, `.local/`, virtual environments, generated credentials, uploads and Python caches are ignored. If a database password has been shared, rotate it in Supabase and update only the private `.env`; it is separate from your Django account password. Debug mode is for local development.
 
-Follow [GIT_WORKFLOW.md](GIT_WORKFLOW.md) to push the integrity fix and documentation update on separate branches. No automatic commits or pushes are made.
+Follow [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for the exact two PD2 feature branches, file groups, commit messages, two PRs into `develop` and release PR into `main`. No automatic commits or pushes are made. Keep merged feature branches as the lab requires.
