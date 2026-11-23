@@ -56,7 +56,7 @@ def visit_create(request):
 def visit_detail(request, pk):
     visit = get_object_or_404(visible_visits(request.user), pk=pk)
     return render(request, "visits/detail.html", {
-        "visit": visit, "decision_form": DecisionForm(),
+        "visit": visit, "decision_form": DecisionForm() if visit.can_edit else None,
         "verified_id": IDDocument.objects.filter(visitor=visit.visitor, review_status="VERIFIED").exists(),
     })
 
@@ -81,14 +81,14 @@ def visit_edit(request, pk):
 def visit_cancel(request, pk):
     with transaction.atomic():
         visit = get_object_or_404(VisitRequest.objects.select_for_update(), pk=pk, visitor__user=request.user)
+        if not visit.can_cancel:
+            messages.error(request, "This request cannot be cancelled in its current state.")
+            return redirect("visit_detail", pk=pk)
         if request.method == "POST":
-            if visit.can_cancel:
-                visit.status = VisitRequest.Status.CANCELLED
-                visit.save(update_fields=["status"])
-                record_action(request.user, visit, "VISIT_CANCELLED")
-                messages.success(request, "Visit cancelled. The request remains in your history.")
-            else:
-                messages.error(request, "This request cannot be cancelled in its current state.")
+            visit.status = VisitRequest.Status.CANCELLED
+            visit.save(update_fields=["status"])
+            record_action(request.user, visit, "VISIT_CANCELLED")
+            messages.success(request, "Visit cancelled. The request remains in your history.")
             return redirect("visit_detail", pk=pk)
     return render(request, "visits/confirm.html", {"visit": visit, "action": "Cancel", "deleting": False})
 
@@ -97,14 +97,14 @@ def visit_cancel(request, pk):
 def visit_delete(request, pk):
     with transaction.atomic():
         visit = get_object_or_404(VisitRequest.objects.select_for_update(), pk=pk, visitor__user=request.user)
-        if request.method == "POST":
-            if visit.status == VisitRequest.Status.PENDING:
-                record_action(request.user, visit, "VISIT_DELETED")
-                visit.delete()
-                messages.success(request, "Pending visit request deleted.")
-                return redirect("visit_list")
+        if visit.status != VisitRequest.Status.PENDING:
             messages.error(request, "Only pending requests can be deleted. Decided requests are retained as history.")
             return redirect("visit_detail", pk=pk)
+        if request.method == "POST":
+            record_action(request.user, visit, "VISIT_DELETED")
+            visit.delete()
+            messages.success(request, "Pending visit request deleted.")
+            return redirect("visit_list")
     return render(request, "visits/confirm.html", {"visit": visit, "action": "Delete", "deleting": True})
 
 
@@ -118,6 +118,8 @@ def visit_decide(request, pk):
         try:
             visit = decide_visit(actor=request.user, visit_id=pk, decision=form.cleaned_data["decision"])
             messages.success(request, f"Visit {visit.get_status_display().lower()}.")
+        except VisitRequest.DoesNotExist:
+            raise Http404("This request was deleted before the decision could be saved.") from None
         except ValidationError as error:
             messages.error(request, " ".join(error.messages))
     else:
@@ -161,6 +163,7 @@ def id_review(request, pk):
             return redirect("id_list")
         except ValidationError as error:
             form.add_error(None, error)
+            document.refresh_from_db()
     return render(request, "visits/review.html", {"form": form, "document": document})
 
 
