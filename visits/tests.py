@@ -1,5 +1,6 @@
 import io
 import tempfile
+from unittest.mock import patch
 from datetime import timedelta
 
 from PIL import Image
@@ -176,6 +177,30 @@ class VisitWorkflowTests(TestCase):
         with self.assertRaises(ValidationError):
             decide_visit(actor=self.resident, visit_id=visit.pk, decision="APPROVED")
 
+    def test_expired_pending_request_does_not_offer_a_decision_form(self):
+        visit = self.visit()
+        VisitRequest.objects.filter(pk=visit.pk).update(expected_start_at=timezone.now()-timedelta(hours=1))
+        self.client.force_login(self.resident)
+        response = self.client.get(reverse("visit_detail", args=[visit.pk]))
+        self.assertContains(response, "The arrival time has passed")
+        self.assertNotContains(response, "Save decision")
+
+    def test_request_deleted_during_decision_returns_404(self):
+        visit = self.visit()
+        self.client.force_login(self.resident)
+        with patch("visits.views.decide_visit", side_effect=VisitRequest.DoesNotExist):
+            response = self.client.post(reverse("visit_decide", args=[visit.pk]), {"decision": "REJECTED"})
+        self.assertEqual(response.status_code, 404)
+
+    def test_stale_delete_and_cancel_links_do_not_show_unavailable_actions(self):
+        visit = self.visit()
+        decide_visit(actor=self.resident, visit_id=visit.pk, decision="REJECTED")
+        for route in ["visit_delete", "visit_cancel"]:
+            response = self.client.get(reverse(route, args=[visit.pk]), follow=True)
+            self.assertRedirects(response, reverse("visit_detail", args=[visit.pk]))
+            self.assertNotContains(response, '<button class="btn btn-primary" type="submit">')
+        self.assertTrue(VisitRequest.objects.filter(pk=visit.pk, status="REJECTED").exists())
+
     def test_approved_request_cannot_be_edited_or_deleted(self):
         self.verified()
         visit = self.visit()
@@ -290,6 +315,15 @@ class VisitWorkflowTests(TestCase):
             review_document(actor=self.admin, document_id=document.pk, decision="VERIFIED", note="")
         self.client.force_login(self.visitor)
         self.assertContains(self.client.get(reverse("id_list")), "Image unreadable")
+
+    def test_repeat_id_review_shows_error_and_preserves_saved_decision(self):
+        document = self.verified()
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("id_review", args=[document.pk]), {"decision": "REJECTED", "review_note": "Late conflicting review"})
+        self.assertContains(response, "This ID has already been reviewed")
+        self.assertNotContains(response, "Save ID review")
+        document.refresh_from_db()
+        self.assertEqual(document.review_status, "VERIFIED")
 
     def test_no_public_media_route(self):
         document = self.verified()

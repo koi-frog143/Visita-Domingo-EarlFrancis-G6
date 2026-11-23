@@ -6,7 +6,7 @@
 <div class="section-heading"><h2>Explore Visita</h2><a href="{% url 'profile' %}">My profile →</a></div>
 <div class="cards service-cards">
 <a class="card" href="{% url 'profile' %}"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-user.svg' %}</span><h3>Your profile</h3><p>Your details, all together.</p><span class="card-link">View profile →</span></a>
-<article class="card"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-book2.svg' %}</span><h3>Visit requests</h3><p>Requests addressed to your unit.</p><span class="tag">Coming soon</span></article>
-<article class="card"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-heart.svg' %}</span><h3>Authorize visits</h3><p>A warm welcome, with your approval.</p><span class="tag">Coming soon</span></article>
+<a class="card" href="{% url 'visit_list' %}"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-book2.svg' %}</span><h3>Visit requests</h3><p>{{ pending_visits }} pending request{{ pending_visits|pluralize }} addressed to you.</p><span class="card-link">View requests →</span></a>
+<a class="card" href="{% url 'visit_list' %}?status=PENDING"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-heart.svg' %}</span><h3>Authorize visits</h3><p>Approve verified visitors or reject a request.</p><span class="card-link">Review pending visits →</span></a>
 </div>
 {% endblock %}

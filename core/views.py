@@ -3,6 +3,7 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
 from accounts.decorators import role_required
 from accounts.models import CustomUser
+from visits.models import IDDocument, VisitRequest
 
 
 def home(request):
@@ -30,6 +31,8 @@ def admin_dashboard(request):
         "visitor_users": CustomUser.objects.filter(role=CustomUser.Role.VISITOR).count(),
         "resident_users": CustomUser.objects.filter(role=CustomUser.Role.RESIDENT).count(),
         "guard_users": CustomUser.objects.filter(role=CustomUser.Role.GUARD).count(),
+        "pending_ids": IDDocument.objects.filter(review_status="PENDING").count(),
+        "total_visits": VisitRequest.objects.count(),
     })
 
 
@@ -41,9 +44,16 @@ def guard_dashboard(request):
 @role_required(CustomUser.Role.RESIDENT)
 def resident_dashboard(request):
     unit = getattr(getattr(request.user, "resident_profile", None), "unit_number", "Not assigned yet")
-    return render(request, "dashboards/resident.html", {"unit": unit})
+    return render(request, "dashboards/resident.html", {
+        "unit": unit,
+        "pending_visits": VisitRequest.objects.filter(resident__user=request.user, status="PENDING").count(),
+    })
 
 
 @role_required(CustomUser.Role.VISITOR)
 def visitor_dashboard(request):
-    return render(request, "dashboards/visitor.html")
+    return render(request, "dashboards/visitor.html", {
+        "pending_visits": VisitRequest.objects.filter(visitor__user=request.user, status="PENDING").count(),
+        "approved_visits": VisitRequest.objects.filter(visitor__user=request.user, status="APPROVED").count(),
+        "verified_id": IDDocument.objects.filter(visitor__user=request.user, review_status="VERIFIED").exists(),
+    })

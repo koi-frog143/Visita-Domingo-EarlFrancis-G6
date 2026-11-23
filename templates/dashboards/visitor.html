@@ -6,8 +6,8 @@
 <div class="section-heading"><h2>Explore your space</h2><a href="{% url 'profile' %}">My profile →</a></div>
 <div class="cards service-cards">
 <a class="card" href="{% url 'profile' %}"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-user.svg' %}</span><h3>Your profile</h3><p>Keep your personal details up to date.</p><span class="card-link">View profile →</span></a>
-<article class="card"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-shield.svg' %}</span><h3>ID submission</h3><p>Identification for a safer community.</p><span class="tag">Coming soon</span></article>
-<article class="card"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-book2.svg' %}</span><h3>Request a visit</h3><p>Connect with a resident before arriving.</p><span class="tag">Coming soon</span></article>
+<a class="card" href="{% url 'id_list' %}"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-shield.svg' %}</span><h3>ID submission</h3><p>{% if verified_id %}Your ID is verified. You're ready for resident approval.{% else %}Submit an ID for private administrator review.{% endif %}</p><span class="card-link">Manage ID submission →</span></a>
+<a class="card" href="{% url 'visit_list' %}"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-book2.svg' %}</span><h3>Request a visit</h3><p>{{ pending_visits }} pending · {{ approved_visits }} approved. Connect with your host before arriving.</p><span class="card-link">Manage visit requests →</span></a>
 <article class="card"><span class="icon-tile">{% include 'partials/icon.html' with icon='resident-icon-ticket1.svg' %}</span><h3>Your QR passes</h3><p>A simpler way to check in.</p><span class="tag">Coming soon</span></article>
 </div>
 {% endblock %}

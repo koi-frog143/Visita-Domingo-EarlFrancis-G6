@@ -2,13 +2,14 @@
   <div class="sidebar-brand">{% include 'partials/brand.html' %}</div>
   <p class="sidebar-label">{% if user.role == 'ADMIN' %}ADMIN WORKSPACE{% else %}{{ user.get_role_display|upper }} PORTAL{% endif %}</p>
   <nav class="sidebar-nav" aria-label="Account navigation">
-    <a class="nav-item {% if 'dashboard' in request.resolver_match.url_name %}is-active{% endif %}" href="{% url 'dashboard' %}" {% if 'dashboard' in request.resolver_match.url_name %}aria-current="page"{% endif %}>{% include 'partials/icon.html' with icon='resident-icon-home.svg' %}Dashboard</a>
+    <a class="nav-item {% if active_nav == 'dashboard' %}is-active{% endif %}" href="{% url 'dashboard' %}" {% if active_nav == 'dashboard' %}aria-current="page"{% endif %}>{% include 'partials/icon.html' with icon='resident-icon-home.svg' %}Dashboard</a>
     {% if user.is_staff %}<a class="nav-item" href="{% url 'admin:accounts_customuser_changelist' %}">{% include 'partials/icon.html' with icon='admin-icon-users.svg' %}Manage accounts</a>{% endif %}
-    <a class="nav-item {% if 'profile' in request.resolver_match.url_name %}is-active{% endif %}" href="{% url 'profile' %}" {% if 'profile' in request.resolver_match.url_name %}aria-current="page"{% endif %}>{% include 'partials/icon.html' with icon='resident-icon-user.svg' %}My profile</a>
+    <a class="nav-item {% if active_nav == 'profile' %}is-active{% endif %}" href="{% url 'profile' %}" {% if active_nav == 'profile' %}aria-current="page"{% endif %}>{% include 'partials/icon.html' with icon='resident-icon-user.svg' %}My profile</a>
+    {% if user.role != 'GUARD' %}<a class="nav-item {% if active_nav == 'visits' %}is-active{% endif %}" href="{% url 'visit_list' %}" {% if active_nav == 'visits' %}aria-current="page"{% endif %}>{% include 'partials/icon.html' with icon='resident-icon-book.svg' %}Visit requests</a>{% endif %}
+    {% if user.role == 'VISITOR' or user.role == 'ADMIN' %}<a class="nav-item {% if active_nav == 'ids' %}is-active{% endif %}" href="{% url 'id_list' %}" {% if active_nav == 'ids' %}aria-current="page"{% endif %}>{% include 'partials/icon.html' with icon='resident-icon-shield.svg' %}{% if user.role == 'ADMIN' %}ID review{% else %}My ID submissions{% endif %}</a>{% endif %}
     <p class="sidebar-label upcoming-label">COMING SOON</p>
     <span class="nav-item unavailable" aria-disabled="true">{% include 'partials/icon.html' with icon='resident-icon-book.svg' %}Visitor logbook</span>
     <span class="nav-item unavailable" aria-disabled="true">{% include 'partials/icon.html' with icon='resident-icon-ticket.svg' %}QR visitor passes</span>
-    <span class="nav-item unavailable" aria-disabled="true">{% include 'partials/icon.html' with icon='resident-icon-heart.svg' %}Visit approvals</span>
   </nav>
   <div class="sidebar-bottom">
     <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="signout">Log out</button></form>
