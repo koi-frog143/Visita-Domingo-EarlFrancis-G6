@@ -1,4 +1,4 @@
-"""Visita PD2. Django templates + PostgreSQL only."""
+"""Visita Phase 1. Django templates + PostgreSQL only."""
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -23,7 +23,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts",
     "core",
-    "visits",
 ]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -80,8 +79,3 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
-
-# No public media route: ID files are served only by an administrator-only view.
-MEDIA_ROOT = BASE_DIR / "media" / "private"
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
-DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
