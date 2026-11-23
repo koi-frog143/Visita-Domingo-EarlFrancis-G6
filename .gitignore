@@ -12,3 +12,12 @@ __pycache__/
 *.sqlite3
 media/
 .local/
+# Prepared report examples stay local; add your manually completed final report
+# explicitly with git add -f when it is ready for submission.
+/docs/PD2-VERIFICATION.md
+/docs/Visita-Domingo-EarlFrancis-G6-PD2.docx
+/docs/Visita-Domingo-EarlFrancis-G6-PD2.pdf
+/docs/pd2-screenshots/
+/docs/pd2-workflow.json
+/scripts/build_pd2_report.py
+/scripts/capture_pd2.py

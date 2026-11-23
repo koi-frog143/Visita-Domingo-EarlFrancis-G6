@@ -1,0 +1,6 @@
+{% extends 'visits/base.html' %}
+{% block title %}{{ action }} request{% endblock %}
+{% block content %}
+<div class="page-header"><div><span class="eyebrow">A CHANGE OF PLANS</span><h1>{{ action }} this request?</h1><p>Visit to {{ visit.resident.user.full_name }} on {{ visit.expected_start_at|date:'M j, Y · g:i A' }}.</p></div></div>
+<section class="panel edit-profile-panel"><h2>{% if deleting %}Delete a pending request{% else %}Cancel your planned visit{% endif %}</h2><p>{% if deleting %}Only pending requests can be deleted. This removes the request; an audit entry is retained. Decided requests remain in your history.{% else %}Your host will see the cancelled status. The request remains in your history.{% endif %}</p><form method="post">{% csrf_token %}<div class="form-actions"><button class="btn btn-primary" type="submit">{% if deleting %}Delete request{% else %}Cancel visit{% endif %}</button><a class="btn btn-outline" href="{% url 'visit_detail' visit.pk %}">Keep request</a></div></form></section>
+{% endblock %}

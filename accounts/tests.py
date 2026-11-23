@@ -348,6 +348,7 @@ class RoleIntegrityMigrationTests(TransactionTestCase):
         before = [("accounts", "0002_alter_customuser_phone")]
         after = [("accounts", "0003_validate_roles_and_profiles")]
         executor = MigrationExecutor(connection)
+        latest_targets = executor.loader.graph.leaf_nodes()
         executor.migrate(before)
         old_apps = executor.loader.project_state(before).apps
         LegacyUser = old_apps.get_model("accounts", "CustomUser")
@@ -378,3 +379,5 @@ class RoleIntegrityMigrationTests(TransactionTestCase):
             LegacyVisitor.objects.filter(user_id=invalid.pk).delete()
             LegacyUser.objects.filter(pk=invalid.pk).update(role="GUARD")
             MigrationExecutor(connection).migrate(after)
+            # Restore dependent apps too, including the PD2 visit tables.
+            MigrationExecutor(connection).migrate(latest_targets)
