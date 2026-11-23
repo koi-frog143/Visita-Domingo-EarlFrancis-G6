@@ -1,0 +1,6 @@
+{% extends 'visits/base.html' %}
+{% block title %}Submit an ID{% endblock %}
+{% block content %}
+<div class="page-header"><div><span class="eyebrow">A LITTLE REASSURANCE</span><h1>Put a face to your name.</h1><p>Submit an ID image for private administrator review.</p></div></div>
+<section class="panel edit-profile-panel"><h2>Your ID submission</h2><p>JPG or PNG only, up to 5 MB. For this classroom demonstration, use a sample ID with fictional details.</p><form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}{% include 'partials/form_field.html' with field=field %}{% endfor %}<div class="form-actions"><button class="btn btn-primary" type="submit">Submit for review</button><a class="btn btn-outline" href="{% url 'id_list' %}">Back</a></div></form></section>
+{% endblock %}
